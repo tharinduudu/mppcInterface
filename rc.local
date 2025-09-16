@@ -1,26 +1,18 @@
 #!/bin/sh -e
-#
-# rc.local
-#
-# This script is executed at the end of each multiuser runlevel.
-# Make sure that the script will "exit 0" on success or any other
-# value on error.
-#
-# In order to enable or disable this script just change the execution
-# bits.
-#
-# By default this script does nothing.
+# rc.local — Muon detector startup + BMP280 logging
 
-# Print the IP address
+# Print IP (optional)
 _IP=$(hostname -I) || true
-if [ "$_IP" ]; then
-  printf "My IP address is %s\n" "$_IP"
-fi
+[ -n "$_IP" ] && printf "My IP address is %s\n" "$_IP"
+
+# Ensure I²C kernel modules are loaded (no-op if already loaded)
+modprobe i2c-dev || true
+modprobe i2c-bcm2835 || true
+
+# --- Hardware init sequence ---
 cd /home/cosmic/mppcinterface-oct-2022/firmware/libraries/ice40
+./main coincidence_ch2_ch1_ch31_ch32_ch12.bin
 
-sudo ./main coincidence_ch2_ch1_ch31_ch32_ch12.bin
-
-# Modified this section on June 26, 2025. hexc
 cd /home/cosmic/mppcinterface-oct-2022/firmware/libraries/dac60508
 ./main 0 0x0
 ./main 1 0x0
@@ -28,14 +20,20 @@ cd /home/cosmic/mppcinterface-oct-2022/firmware/libraries/dac60508
 ./main 3 0x0
 
 cd /home/cosmic/mppcinterface-oct-2022/firmware/libraries/max1932
-
 ./main 0xE5
 
-# changed to 10 seconds wait from 5
-sleep 10 
+# Give HV/bias a moment to settle
+sleep 10
 
+# --- Start slowControl (background) ---
 cd /home/cosmic/mppcinterface-oct-2022/firmware/libraries/slowControl
+filename=$(date +"Turkey_Obs-E5-4Chnl_%Y_%m_%d_%H_%M.log")
+echo "$filename"
+/home/cosmic/mppcinterface-oct-2022/firmware/libraries/slowControl/main "$filename" >>/var/log/slowcontrol.log 2>&1 &
 
-filename=$(date +"Turkey_Obs-E5-4Chnl"_"%Y_%m_%d_%H_%M.log")
-echo $filename
-./main $filename &
+# --- Start BMP280 logger (background, 5-min interval) ---
+mkdir -p /home/cosmic/logs
+/usr/bin/python3 /home/cosmic/bmp280.py --addr 0x76 --interval 300 --align \
+  --outdir /home/cosmic/logs --prefix Turkey_Obs-BMP280 >>/var/log/bmp280.log 2>&1 &
+
+exit 0

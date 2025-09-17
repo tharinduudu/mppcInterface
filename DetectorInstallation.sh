@@ -156,6 +156,13 @@ chown "${USER_NAME}:${USER_NAME}" "${DATAXFER}"
 log "Crontab: every 6h (no output redirection)"
 bash -lc '(crontab -u '"${USER_NAME}"' -l 2>/dev/null | grep -v -F "'"${DATAXFER}"'"; echo "0 */6 * * * '"${DATAXFER}"'") | crontab -u '"${USER_NAME}"' -'
 
+# ---------- Display.sh ----------
+log "Fetch Display.sh → ${USER_HOME}/Display.sh"
+curl -fL https://raw.githubusercontent.com/tharinduudu/mppcInterface/main/Display.sh -o "${USER_HOME}/Display.sh"
+sed -i 's/\r$//' "${USER_HOME}/Display.sh" || true
+chmod 755 "${USER_HOME}/Display.sh"
+chown "${USER_NAME}:${USER_NAME}" "${USER_HOME}/Display.sh"
+
 # ---------- SSH key (with friendly message) ----------
 log "Generate Ed25519 SSH key (no prompts) and print public key"
 sudo -u "${USER_NAME}" bash -lc '

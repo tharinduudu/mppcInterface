@@ -11,7 +11,7 @@ modprobe i2c-bcm2835 || true
 
 # --- Hardware init sequence ---
 cd /home/cosmic/mppcinterface-oct-2022/firmware/libraries/ice40
-./main coincidence_ch2_ch1_ch31_ch32_ch12.bin
+./main coincidence_0raw_1raw_conincident.bin
 
 cd /home/cosmic/mppcinterface-oct-2022/firmware/libraries/dac60508
 ./main 0 0x0
